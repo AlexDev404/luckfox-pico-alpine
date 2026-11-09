@@ -1,0 +1,3 @@
+#!/bin/sh
+blkid /dev/mmcblk1p5 | grep -q 'TYPE="swap"' || { mkswap /dev/mmcblk1p5 && swapon -a; }
+resize2fs /dev/mmcblk1p6 >/dev/null 2>&1

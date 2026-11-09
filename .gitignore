@@ -1,0 +1,6 @@
+out/
+*.img
+*.img.xz
+*.tar.gz
+# compatibility symlink to sdk/ for older local tooling
+/luckfox-pico

@@ -1,0 +1,37 @@
+#!/sbin/openrc-run
+depend() {
+  need sysfs
+  before networking
+}
+start() {
+  ebegin "Starting USB gadget"
+  C=/sys/kernel/config
+  G=$C/usb_gadget/g1
+  F=$G/functions/ecm.usb0
+  S=$G/strings/0x409
+  [ -d $C/usb_gadget ] || mount -t configfs none $C
+  if [ ! -d $G ]; then
+    mkdir -p $S $F
+    mkdir -p $G/configs/c.1
+    echo 0x1d6b > $G/idVendor
+    echo 0x0104 > $G/idProduct
+    echo luckfox > $S/manufacturer
+    echo PicoAlpine > $S/product
+    echo 0001 > $S/serialnumber
+    echo 02:4c:46:00:00:01 > $F/dev_addr
+    echo 02:4c:46:00:00:02 > $F/host_addr
+    ln -s $F $G/configs/c.1/
+  fi
+  U=$(ls /sys/class/udc | head -n1)
+  for i in 1 2 3 4 5 6 7 8 9 10; do
+    [ -n "$(cat $G/UDC)" ] && break
+    echo "$U" > $G/UDC 2>/dev/null
+    sleep 1
+  done
+  [ -n "$(cat $G/UDC)" ]
+  eend $? "could not bind gadget to $U"
+}
+stop() {
+  echo > /sys/kernel/config/usb_gadget/g1/UDC
+}
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ntpd -d -q && crond
+

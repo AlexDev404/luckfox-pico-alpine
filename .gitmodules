@@ -1,0 +1,5 @@
+[submodule "sdk"]
+	path = sdk
+	url = https://github.com/LuckfoxTECH/luckfox-pico.git
+	shallow = true
+	ignore = dirty

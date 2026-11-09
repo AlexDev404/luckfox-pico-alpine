@@ -1,0 +1,54 @@
+name: Build SD image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker image prune --all --force
+          df -h /
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
+
+      - name: Build image
+        env:
+          ROOT_PASSWORD_HASH: ${{ secrets.ROOT_PASSWORD_HASH }}
+        run: ./build.sh
+
+      - name: Compress
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" out
+          xz -T0 -6 out/sd_update.img
+          (cd out && sha256sum sd_update.img.xz > sd_update.img.xz.sha256)
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sd_update-${{ github.sha }}
+          path: |
+            out/sd_update.img.xz
+            out/sd_update.img.xz.sha256
+          retention-days: 14
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" out/sd_update.img.xz out/sd_update.img.xz.sha256 --generate-notes
